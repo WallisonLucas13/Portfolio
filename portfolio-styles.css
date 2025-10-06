@@ -1188,6 +1188,10 @@ select:focus {
     }
 
     /* Hero Section */
+    .hero {
+        padding-top: var(--space-xxl);
+    }
+    
     .hero-content {
         grid-template-columns: 1fr;
         gap: var(--space-lg);
@@ -1201,6 +1205,7 @@ select:focus {
     .code-animation {
         order: -1;
         text-align: left;
+        padding-top: 70px;
     }
 
     /* Contact Section */
@@ -1279,10 +1284,14 @@ select:focus {
         font-size: 1.2rem;
     }
 
+    .hero {
+        padding-top: 100px;
+    }
+
     .code-animation {
         font-size: 0.75rem;
         padding: var(--space-md);
-        padding-top: 50px;
+        padding-top: 60px;
     }
 
     .hero-content {
@@ -1318,6 +1327,10 @@ select:focus {
         margin: 0 auto;
     }
 
+    .hero {
+        padding-top: 120px;
+    }
+
     .hero-title {
         font-size: 1.75rem;
         line-height: 1.2;
@@ -1334,7 +1347,7 @@ select:focus {
     .code-animation {
         font-size: 0.7rem;
         padding: var(--space-sm);
-        padding-top: 40px;
+        padding-top: 55px;
         min-height: 200px;
         gap: 6px;
     }
