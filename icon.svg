@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <!-- Gradiente principal -->
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradiente para o fundo -->
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:0.1" />
+    </radialGradient>
+    
+    <!-- Sombra -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Fundo do círculo -->
+  <circle cx="50" cy="50" r="45" fill="url(#bgGradient)" stroke="url(#mainGradient)" stroke-width="2"/>
+  
+  <!-- Forma geométrica de fundo -->
+  <polygon points="20,25 80,25 75,75 25,75" fill="url(#mainGradient)" opacity="0.1"/>
+  
+  <!-- Letra W -->
+  <path d="M25 30 L30 60 L35 45 L40 60 L45 30" 
+        stroke="url(#mainGradient)" 
+        stroke-width="4" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none" 
+        filter="url(#shadow)"/>
+  
+  <!-- Letra L -->
+  <path d="M55 30 L55 60 L70 60" 
+        stroke="url(#mainGradient)" 
+        stroke-width="4" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none" 
+        filter="url(#shadow)"/>
+  
+  <!-- Detalhe decorativo - pontos -->
+  <circle cx="30" cy="25" r="2" fill="url(#mainGradient)" opacity="0.6"/>
+  <circle cx="65" cy="25" r="2" fill="url(#mainGradient)" opacity="0.6"/>
+  
+  <!-- Linha decorativa inferior -->
+  <line x1="30" y1="70" x2="65" y2="70" stroke="url(#mainGradient)" stroke-width="2" opacity="0.5" stroke-linecap="round"/>
+</svg>
