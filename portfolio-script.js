@@ -624,6 +624,176 @@ const ThemeManager = {
     }
 };
 
+// ===== PWA SERVICE WORKER REGISTRATION =====
+class PWAManager {
+    constructor() {
+        this.deferredPrompt = null;
+        this.isInstalled = false;
+        this.init();
+    }
+
+    async init() {
+        // Registrar Service Worker
+        await this.registerServiceWorker();
+        
+        // Configurar eventos PWA
+        this.setupPWAEvents();
+        
+        // Criar botão de instalação
+        this.createInstallButton();
+        
+        // Verificar se já está instalado
+        this.checkIfInstalled();
+    }
+
+    async registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                
+                console.log('✅ Service Worker registrado:', registration.scope);
+                
+                // Verificar atualizações
+                registration.addEventListener('updatefound', () => {
+                    console.log('🔄 Nova versão do Service Worker disponível');
+                    const newWorker = registration.installing;
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            this.showUpdateAvailable();
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error('❌ Falha ao registrar Service Worker:', error);
+            }
+        }
+    }
+
+    setupPWAEvents() {
+        // Capturar evento de instalação
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('💾 PWA pode ser instalado');
+            e.preventDefault();
+            this.deferredPrompt = e;
+            this.showInstallButton();
+        });
+
+        // Detectar quando foi instalado
+        window.addEventListener('appinstalled', () => {
+            console.log('🎉 PWA foi instalado!');
+            this.hideInstallButton();
+            this.isInstalled = true;
+            this.showInstallSuccess();
+        });
+    }
+
+    createInstallButton() {
+        // Criar botão de instalação se não existir
+        if (!document.getElementById('pwa-install-btn')) {
+            const installBtn = document.createElement('button');
+            installBtn.id = 'pwa-install-btn';
+            installBtn.className = 'pwa-install-btn hidden';
+            installBtn.innerHTML = `
+                <i class="fas fa-download"></i>
+                <span>Instalar App</span>
+            `;
+            installBtn.addEventListener('click', () => this.installPWA());
+            
+            // Adicionar ao header ou criar container flutuante
+            const header = document.querySelector('.header .nav-container');
+            if (header) {
+                header.appendChild(installBtn);
+            }
+        }
+    }
+
+    showInstallButton() {
+        const btn = document.getElementById('pwa-install-btn');
+        if (btn && !this.isInstalled) {
+            btn.classList.remove('hidden');
+        }
+    }
+
+    hideInstallButton() {
+        const btn = document.getElementById('pwa-install-btn');
+        if (btn) {
+            btn.classList.add('hidden');
+        }
+    }
+
+    async installPWA() {
+        if (!this.deferredPrompt) return;
+
+        try {
+            // Mostrar prompt de instalação
+            this.deferredPrompt.prompt();
+            
+            // Aguardar escolha do usuário
+            const { outcome } = await this.deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                console.log('✅ Usuário aceitou instalar o PWA');
+            } else {
+                console.log('❌ Usuário rejeitou instalar o PWA');
+            }
+            
+            this.deferredPrompt = null;
+        } catch (error) {
+            console.error('❌ Erro ao instalar PWA:', error);
+        }
+    }
+
+    checkIfInstalled() {
+        // Verificar se está rodando como PWA
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('📱 Rodando como PWA instalado');
+            this.isInstalled = true;
+        }
+    }
+
+    showUpdateAvailable() {
+        // Mostrar notificação de atualização disponível
+        const notification = document.createElement('div');
+        notification.className = 'pwa-update-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span>Nova versão disponível!</span>
+                <button onclick="window.location.reload()">Atualizar</button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remover após 10 segundos
+        setTimeout(() => {
+            notification.remove();
+        }, 10000);
+    }
+
+    showInstallSuccess() {
+        // Mostrar mensagem de sucesso
+        const success = document.createElement('div');
+        success.className = 'pwa-install-success';
+        success.innerHTML = `
+            <div class="success-content">
+                <i class="fas fa-check-circle"></i>
+                <span>App instalado com sucesso!</span>
+            </div>
+        `;
+        document.body.appendChild(success);
+        
+        setTimeout(() => {
+            success.remove();
+        }, 3000);
+    }
+}
+
+// Inicializar PWA quando DOM estiver pronto
+document.addEventListener('DOMContentLoaded', () => {
+    new PWAManager();
+});
+
 // Export for potential module usage
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -631,6 +801,7 @@ if (typeof module !== 'undefined' && module.exports) {
         AnimationObserver,
         ContactForm,
         ThemeManager,
-        DeviceUtils
+        DeviceUtils,
+        PWAManager
     };
 }

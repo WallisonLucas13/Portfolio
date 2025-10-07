@@ -2060,3 +2060,165 @@ select:focus {
         font-size: 1.8rem;
     }
 }
+
+/* ============================================
+   PWA STYLES
+   ============================================ */
+
+/* Botão de instalação PWA */
+.pwa-install-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    color: white;
+    border: none;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 25px;
+    font-family: var(--font-primary);
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(139, 69, 195, 0.3);
+    margin-left: var(--space-md);
+}
+
+.pwa-install-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 69, 195, 0.4);
+}
+
+.pwa-install-btn:active {
+    transform: translateY(0);
+}
+
+.pwa-install-btn.hidden {
+    display: none;
+}
+
+.pwa-install-btn i {
+    font-size: 1rem;
+}
+
+/* Notificação de atualização */
+.pwa-update-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--brand-primary);
+    border-radius: 12px;
+    padding: var(--space-md);
+    z-index: 9999;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideInRight 0.3s ease;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--text-primary);
+}
+
+.notification-content button {
+    background: var(--brand-primary);
+    color: white;
+    border: none;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.notification-content button:hover {
+    background: var(--brand-secondary);
+}
+
+/* Mensagem de sucesso da instalação */
+.pwa-install-success {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-card);
+    border: 2px solid #4ade80;
+    border-radius: 16px;
+    padding: var(--space-lg);
+    z-index: 9999;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    animation: scaleIn 0.3s ease;
+}
+
+.success-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: #4ade80;
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.success-content i {
+    font-size: 1.5rem;
+}
+
+/* Animações PWA */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Responsivo para PWA */
+@media (max-width: 768px) {
+    .pwa-install-btn {
+        padding: var(--space-xs) var(--space-sm);
+        font-size: 0.8rem;
+        margin-left: var(--space-sm);
+    }
+    
+    .pwa-install-btn span {
+        display: none;
+    }
+    
+    .pwa-update-notification {
+        left: 10px;
+        right: 10px;
+        top: 10px;
+    }
+}
+
+/* Estilos quando rodando como PWA instalado */
+@media (display-mode: standalone) {
+    .pwa-install-btn {
+        display: none !important;
+    }
+    
+    /* Adicionar padding extra no topo para compensar a barra de status */
+    .header {
+        padding-top: env(safe-area-inset-top, 0);
+    }
+    
+    .hero {
+        padding-top: calc(120px + env(safe-area-inset-top, 0));
+    }
+}
