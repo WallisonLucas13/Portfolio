@@ -4,15 +4,15 @@ const STATIC_CACHE_NAME = 'wallison-static-v1.0.0';
 
 // Arquivos para cache offline
 const STATIC_FILES = [
-  '/',
-  '/index.html',
-  '/portfolio-styles.css',
-  '/portfolio-script.js',
-  '/manifest.json',
-  '/favicon.svg',
-  '/favicon-16x16.svg',
-  '/apple-touch-icon.svg',
-  '/icon.svg',
+  './',
+  './index.html',
+  './portfolio-styles.css',
+  './portfolio-script.js',
+  './manifest.json',
+  './favicon.svg',
+  './favicon-16x16.svg',
+  './apple-touch-icon.svg',
+  './icon.svg',
   // Adicione outros arquivos estáticos necessários
 ];
 
@@ -122,7 +122,7 @@ async function networkFirstWithCacheFallback(request) {
     
     // Fallback para página offline se disponível
     if (request.destination === 'document') {
-      return caches.match('/index.html');
+      return caches.match('./index.html');
     }
     
     throw error;
@@ -206,7 +206,7 @@ self.addEventListener('notificationclick', event => {
   
   if (event.action === 'view' || !event.action) {
     event.waitUntil(
-      clients.openWindow('/')
+      clients.openWindow('./')
     );
   }
 });

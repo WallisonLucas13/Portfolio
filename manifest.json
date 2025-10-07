@@ -2,12 +2,12 @@
   "name": "Wallison Lucas - Engenheiro de Software",
   "short_name": "WL Portfolio",
   "description": "Portfólio profissional de Wallison Lucas - Engenheiro de Software especializado em Java, Spring Boot, Angular e TypeScript",
-  "start_url": "/index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#764ba2",
   "orientation": "portrait-primary",
-  "scope": "/",
+  "scope": "./",
   "lang": "pt-BR",
   "categories": ["business", "portfolio", "professional"],
   "icons": [
@@ -81,7 +81,7 @@
       "name": "Sobre",
       "short_name": "Sobre",
       "description": "Saiba mais sobre Wallison Lucas",
-      "url": "/index.html#about",
+      "url": "./#about",
       "icons": [
         {
           "src": "icon-96x96.png",
@@ -93,7 +93,7 @@
       "name": "Projetos",
       "short_name": "Projetos",
       "description": "Veja os projetos desenvolvidos",
-      "url": "/index.html#projects",
+      "url": "./#projects",
       "icons": [
         {
           "src": "icon-96x96.png",
@@ -105,7 +105,7 @@
       "name": "Contato",
       "short_name": "Contato",
       "description": "Entre em contato",
-      "url": "/index.html#contact",
+      "url": "./#contact",
       "icons": [
         {
           "src": "icon-96x96.png",
