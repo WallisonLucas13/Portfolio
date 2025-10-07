@@ -14,15 +14,8 @@
     <link rel="icon" type="image/svg+xml" href="favicon-16x16.svg" sizes="16x16">
     <link rel="icon" type="image/svg+xml" href="favicon.svg" sizes="32x32">
     <link rel="apple-touch-icon" href="apple-touch-icon.svg" sizes="192x192">
-    <link rel="manifest" href="site.webmanifest">
-    
-    <!-- Meta tags para PWA e dispositivos móveis -->
+    <!-- Meta tags para dispositivos móveis -->
     <meta name="theme-color" content="#764ba2">
-    <meta name="msapplication-TileColor" content="#667eea">
-    <meta name="msapplication-config" content="browserconfig.xml">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="WL Portfolio">
     <meta name="format-detection" content="telephone=no">
     
     <!-- Open Graph / Facebook -->
@@ -875,6 +868,19 @@
         </div>
     </footer>
     </main>
+
+    <!-- Analytics de Visitas -->
+    <div style="display: none;" id="visitor-analytics">
+        <form id="visitor-form" action="https://formspree.io/f/mldplzaa" method="POST">
+            <input type="hidden" name="_subject" value="Nova visita ao portfolio">
+            <input type="hidden" name="source" value="portfolio_analytics">
+            <input type="hidden" name="visitor_time" id="visit_time">
+            <input type="hidden" name="visit_duration" id="visit_duration">
+            <input type="hidden" name="visitor_id" id="visit_id">
+            <input type="hidden" name="_format" value="plain">
+            <textarea name="_gotcha" style="display: none;"></textarea>
+        </form>
+    </div>
 
     <script src="portfolio-script.js"></script>
 </body>

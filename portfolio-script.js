@@ -577,19 +577,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ===== SERVICE WORKER REGISTRATION =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('✅ Service Worker registrado:', registration);
-            })
-            .catch(error => {
-                console.log('❌ Falha ao registrar Service Worker:', error);
-            });
-    });
-}
-
 // ===== THEME SWITCHING (Future Enhancement) =====
 const ThemeManager = {
     init() {
@@ -624,6 +611,164 @@ const ThemeManager = {
     }
 };
 
+// ===== VISITOR ANALYTICS =====
+class VisitorAnalytics {
+    constructor() {
+        this.visitStartTime = Date.now();
+        this.visitorId = this.generateVisitorId();
+        this.sectionTimes = new Map(); // Para rastrear tempo em cada seção
+        this.currentSection = null;
+        this.sectionStartTime = Date.now();
+        this.hasReportedVisit = false;
+        this.minTimeThreshold = 0; // Capturar todas as visitas
+        this.isProduction = !this.isLocalDevelopment();
+        this.init();
+    }
+
+    isLocalDevelopment() {
+        const hostname = window.location.hostname;
+        return hostname === 'localhost' || 
+               hostname === '127.0.0.1' || 
+               hostname.startsWith('192.168.') ||
+               hostname.includes('local') ||
+               window.location.protocol === 'file:';
+    }
+
+    init() {
+        window.addEventListener('beforeunload', () => {
+            this.reportCompleteVisit();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                setTimeout(() => {
+                    if (document.hidden && !this.hasReportedVisit) {
+                        this.reportCompleteVisit();
+                    }
+                }, 30000);
+            }
+        });
+    }
+
+    generateVisitorId() {
+        // Gerar ID único baseado em timestamp + random
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substr(2, 9);
+        return `visitor_${timestamp}_${random}`;
+    }
+
+    getTimeOnSite() {
+        const duration = Date.now() - this.visitStartTime;
+        const seconds = Math.floor(duration / 1000);
+        const minutes = Math.floor(seconds / 60);
+        
+        if (minutes > 0) {
+            return `${minutes}m ${seconds % 60}s`;
+        }
+        return `${seconds}s`;
+    }
+
+    trackSectionVisit(sectionId) {
+        const now = Date.now();
+        
+        // Se estava em outra seção, salvar o tempo dela
+        if (this.currentSection && this.currentSection !== sectionId) {
+            const timeSpent = now - this.sectionStartTime;
+            const currentTime = this.sectionTimes.get(this.currentSection) || 0;
+            this.sectionTimes.set(this.currentSection, currentTime + timeSpent);
+        }
+        
+        // Começar a contar tempo da nova seção
+        this.currentSection = sectionId;
+        this.sectionStartTime = now;
+    }
+
+    async reportCompleteVisit() {
+        // Não enviar em desenvolvimento local
+        if (!this.isProduction) return;
+        
+        const totalTime = Date.now() - this.visitStartTime;
+        if (totalTime < this.minTimeThreshold || this.hasReportedVisit) return;
+
+        this.hasReportedVisit = true;
+        
+        // Finalizar tempo da seção atual
+        if (this.currentSection) {
+            const timeSpent = Date.now() - this.sectionStartTime;
+            const currentTime = this.sectionTimes.get(this.currentSection) || 0;
+            this.sectionTimes.set(this.currentSection, currentTime + timeSpent);
+        }
+        
+        const form = document.getElementById('visitor-form');
+        if (!form) return;
+
+        // Preencher campos básicos
+        document.getElementById('visit_time').value = new Date().toLocaleString('pt-BR');
+        document.getElementById('visit_duration').value = this.getTimeOnSite();
+        document.getElementById('visit_id').value = this.visitorId;
+
+        const formData = new FormData(form);
+        formData.append('sections_visited', this.getSectionsVisited());
+        formData.append('visit_quality', this.getSimpleVisitQuality());
+
+        try {
+            navigator.sendBeacon(form.action, formData) || 
+            await fetch(form.action, { method: 'POST', body: formData, mode: 'no-cors' });
+        } catch (error) {
+            // Silencioso em produção
+        }
+    }
+
+    getSectionsVisited() {
+        const sections = [];
+        this.sectionTimes.forEach((time, sectionId) => {
+            const seconds = Math.round(time / 1000);
+            const sectionName = sectionId.replace('#', '');
+            sections.push(`${sectionName}: ${seconds}s`);
+        });
+        
+        return sections.length > 0 ? sections.join(' | ') : 'Apenas página inicial';
+    }
+
+    getSimpleVisitQuality() {
+        const duration = Date.now() - this.visitStartTime;
+        const sectionsCount = this.sectionTimes.size;
+        
+        if (duration > 120000 && sectionsCount > 2) return 'Engajada';
+        if (duration > 60000) return 'Média';
+        return 'Rápida';
+    }
+}
+
+// Inicializar analytics quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    // Aguardar um pouco para não impactar o carregamento da página
+    setTimeout(() => {
+        const analytics = new VisitorAnalytics();
+        
+        // Só configurar rastreamento em produção
+        if (analytics.isProduction) {
+            // Rastrear seções visitadas por tempo
+            const sections = document.querySelectorAll('section[id]');
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const sectionId = '#' + entry.target.id;
+                        analytics.trackSectionVisit(sectionId);
+                    }
+                });
+            }, {
+                threshold: 0.6,
+                rootMargin: '-50px 0px'
+            });
+
+            sections.forEach(section => {
+                sectionObserver.observe(section);
+            });
+        }
+    }, 1000);
+});
+
 // Export for potential module usage
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -631,6 +776,8 @@ if (typeof module !== 'undefined' && module.exports) {
         AnimationObserver,
         ContactForm,
         ThemeManager,
-        DeviceUtils
+        DeviceUtils,
+        VisitorAnalytics,
+        InteractionTracker
     };
 }
