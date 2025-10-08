@@ -17,11 +17,20 @@ navToggle?.addEventListener('click', () => {
     navToggle.classList.toggle('active');
 });
 
-// Close mobile menu when clicking on nav links
+// Close mobile menu when clicking on nav links and set active state
 navLinks.forEach(link => {
     link.addEventListener('click', () => {
         navMenu.classList.remove('active');
         navToggle.classList.remove('active');
+        
+        // Remove active class from all nav links
+        navLinks.forEach(navLink => navLink.classList.remove('active'));
+        
+        // Add active class to clicked link (click effect with bottom bar)
+        link.classList.add('active');
+        
+        // Remove focus from link to prevent CSS :focus conflicts
+        link.blur();
     });
 });
 
@@ -29,18 +38,37 @@ navLinks.forEach(link => {
 window.addEventListener('scroll', () => {
     const sections = document.querySelectorAll('section[id]');
     const scrollY = window.pageYOffset;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // Se estiver no final da página (últimos 50px), ativar sempre o último item (contact)
+    if (scrollY + windowHeight >= documentHeight - 50) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const contactLink = document.querySelector('.nav-link[href="#contact"]');
+        contactLink?.classList.add('active');
+        return;
+    }
 
+    let activeSection = null;
+    
     sections.forEach(section => {
         const sectionHeight = section.offsetHeight;
         const sectionTop = section.offsetTop - 100;
+        const sectionBottom = sectionTop + sectionHeight;
         const sectionId = section.getAttribute('id');
-        const navLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
 
-        if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-            navLinks.forEach(link => link.classList.remove('active'));
-            navLink?.classList.add('active');
+        // Se a seção está visível na tela
+        if (scrollY >= sectionTop && scrollY < sectionBottom) {
+            activeSection = sectionId;
         }
     });
+
+    // Ativar o link correspondente
+    if (activeSection) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const activeLink = document.querySelector(`.nav-link[href="#${activeSection}"]`);
+        activeLink?.classList.add('active');
+    }
 });
 
 // Header Background on Scroll
@@ -522,6 +550,15 @@ document.addEventListener('DOMContentLoaded', () => {
     AnimationObserver.init();
     ContactForm.init();
     
+    // Set initial active navigation link
+    const homeNavLink = document.querySelector('.nav-link[href="#home"]');
+    if (homeNavLink) {
+        // Remove active class from all nav links first
+        navLinks.forEach(link => link.classList.remove('active'));
+        // Add active class to home link
+        homeNavLink.classList.add('active');
+    }
+    
     // Set timestamp for contact form
     const timestampField = document.getElementById('timestamp');
     if (timestampField) {
@@ -577,19 +614,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ===== SERVICE WORKER REGISTRATION =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('✅ Service Worker registrado:', registration);
-            })
-            .catch(error => {
-                console.log('❌ Falha ao registrar Service Worker:', error);
-            });
-    });
-}
-
 // ===== THEME SWITCHING (Future Enhancement) =====
 const ThemeManager = {
     init() {
@@ -624,6 +648,308 @@ const ThemeManager = {
     }
 };
 
+// ===== VISITOR ANALYTICS =====
+class VisitorAnalytics {
+    constructor() {
+        this.visitStartTime = Date.now();
+        this.visitorId = this.generateVisitorId();
+        this.sectionEntries = []; // Lista de entradas: {section, timestamp}
+        this.hasReportedVisit = false;
+        this.minTimeThreshold = 0;
+        this.isProduction = !this.isLocalDevelopment();
+        this.init();
+        
+        // Registrar entrada inicial no home
+        this.recordSectionEntry('#home');
+    }
+
+    isLocalDevelopment() {
+        const hostname = window.location.hostname;
+        return hostname === 'localhost' || 
+               hostname === '127.0.0.1' || 
+               hostname.startsWith('192.168.') ||
+               hostname.includes('local') ||
+               window.location.protocol === 'file:';
+    }
+
+    init() {
+        // Múltiplas estratégias para capturar a saída
+        
+        // 1. beforeunload - funciona em recarregar
+        window.addEventListener('beforeunload', () => {
+            this.reportCompleteVisit();
+        });
+
+        // 2. pagehide - mais confiável que beforeunload
+        window.addEventListener('pagehide', () => {
+            this.reportCompleteVisit();
+        });
+
+        // 3. visibilitychange - quando a página sai de foco
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Enviar imediatamente quando esconder
+                this.reportCompleteVisit();
+                
+                // Backup: enviar após 5 segundos se ainda estiver escondida
+                setTimeout(() => {
+                    if (document.hidden && !this.hasReportedVisit) {
+                        this.reportCompleteVisit();
+                    }
+                }, 5000);
+            }
+        });
+
+        // 4. Envio automático após tempo mínimo (backup)
+        if (this.isProduction) {
+            setTimeout(() => {
+                if (!this.hasReportedVisit) {
+                    this.reportCompleteVisit();
+                }
+            }, 30000); // 30 segundos como backup
+        }
+
+        // 5. Detecção de inatividade
+        this.setupInactivityDetection();
+    }
+
+    setupInactivityDetection() {
+        if (!this.isProduction) return;
+        
+        let inactivityTimer;
+        const resetTimer = () => {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                // Usuário inativo por 60 segundos
+                if (!this.hasReportedVisit) {
+                    this.reportCompleteVisit();
+                }
+            }, 60000);
+        };
+
+        // Reset timer em qualquer atividade
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+            document.addEventListener(event, resetTimer, { passive: true });
+        });
+
+        resetTimer(); // Iniciar timer
+    }
+
+    generateVisitorId() {
+        // Gerar ID único baseado em timestamp + random
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substr(2, 9);
+        return `visitor_${timestamp}_${random}`;
+    }
+
+    getTimeOnSite() {
+        const duration = Date.now() - this.visitStartTime;
+        const seconds = Math.max(1, Math.floor(duration / 1000)); // Mínimo 1 segundo
+        const minutes = Math.floor(seconds / 60);
+        
+        if (minutes > 0) {
+            return `${minutes}m ${seconds % 60}s`;
+        }
+        return `${seconds}s`;
+    }
+
+    recordSectionEntry(sectionId) {
+        const timestamp = Date.now();
+        this.sectionEntries.push({
+            section: sectionId,
+            timestamp: timestamp
+        });
+    }
+
+    trackSectionVisit(sectionId) {
+        const lastEntry = this.sectionEntries[this.sectionEntries.length - 1];
+        
+        // Só registrar se for seção diferente da última
+        if (!lastEntry || lastEntry.section !== sectionId) {
+            this.recordSectionEntry(sectionId);
+        }
+    }
+
+    async reportCompleteVisit() {
+        // Não enviar em desenvolvimento local
+        if (!this.isProduction) return;
+        
+        const totalTime = Date.now() - this.visitStartTime;
+        if (totalTime < this.minTimeThreshold || this.hasReportedVisit) return;
+
+        this.hasReportedVisit = true;
+        
+        const form = document.getElementById('visitor-form');
+        if (!form) return;
+
+        // Calcular todos os dados no momento do envio
+        const visitDuration = this.getTimeOnSite();
+        const sectionsData = this.getSectionsVisited();
+        const visitQuality = this.getSimpleVisitQuality();
+
+        // Preencher campos básicos
+        document.getElementById('visit_time').value = new Date().toLocaleString('pt-BR');
+        document.getElementById('visit_duration').value = visitDuration;
+        document.getElementById('visit_id').value = this.visitorId;
+
+        const formData = new FormData(form);
+        formData.append('sections_visited', sectionsData);
+        formData.append('visit_quality', visitQuality);
+        
+        // Debug temporário em produção
+        const sectionTimes = this.calculateSectionTimes();
+        formData.append('debug_total_ms', totalTime);
+        formData.append('debug_entries_count', this.sectionEntries.length);
+        formData.append('debug_entries', JSON.stringify(this.sectionEntries));
+
+        try {
+            // Tentar sendBeacon primeiro (mais confiável para saída da página)
+            const beaconSent = navigator.sendBeacon && navigator.sendBeacon(form.action, formData);
+            
+            if (!beaconSent) {
+                // Fallback com fetch
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    keepalive: true, // Importante: mantém a requisição mesmo se a página fechar
+                    mode: 'no-cors'
+                }).catch(() => {
+                    // Último fallback: criar um form temporário e submeter
+                    const tempForm = document.createElement('form');
+                    tempForm.method = 'POST';
+                    tempForm.action = form.action;
+                    tempForm.style.display = 'none';
+                    
+                    // Copiar todos os dados
+                    for (let [key, value] of formData.entries()) {
+                        const input = document.createElement('input');
+                        input.name = key;
+                        input.value = value;
+                        tempForm.appendChild(input);
+                    }
+                    
+                    document.body.appendChild(tempForm);
+                    tempForm.submit();
+                });
+            }
+        } catch (error) {
+            // Silencioso em produção
+        }
+    }
+
+    calculateSectionTimes() {
+        const sectionTimes = new Map();
+        const now = Date.now();
+        const totalVisitTime = now - this.visitStartTime;
+        
+        if (this.sectionEntries.length === 0) {
+            // Se não há entradas, toda visita foi no home
+            sectionTimes.set('#home', totalVisitTime);
+            return sectionTimes;
+        }
+        
+        if (this.sectionEntries.length === 1) {
+            // Se há só uma entrada, toda visita foi nesta seção
+            sectionTimes.set(this.sectionEntries[0].section, totalVisitTime);
+            return sectionTimes;
+        }
+        
+        // Calcular tempo em cada seção baseado nas entradas
+        for (let i = 0; i < this.sectionEntries.length; i++) {
+            const entry = this.sectionEntries[i];
+            const nextEntry = this.sectionEntries[i + 1];
+            
+            // Tempo até próxima seção ou até agora
+            const endTime = nextEntry ? nextEntry.timestamp : now;
+            let timeSpent = endTime - entry.timestamp;
+            
+            // Adicionar tempo à seção (pode ter múltiplas visitas)
+            const currentTime = sectionTimes.get(entry.section) || 0;
+            sectionTimes.set(entry.section, currentTime + timeSpent);
+        }
+        
+        return sectionTimes;
+    }
+
+    getSectionsVisited() {
+        const sectionTimes = this.calculateSectionTimes();
+        const sections = [];
+        
+        sectionTimes.forEach((time, sectionId) => {
+            const seconds = (time / 1000).toFixed(3); // 3 casas decimais
+            const sectionName = sectionId.replace('#', '');
+            sections.push(`${sectionName}: ${seconds}s`);
+        });
+        
+        return sections.length > 0 ? sections.join(' | ') : 'Visita muito rápida';
+    }
+
+    getSimpleVisitQuality() {
+        const duration = Date.now() - this.visitStartTime;
+        const sectionsCount = this.calculateSectionTimes().size;
+        
+        if (duration > 120000 && sectionsCount > 2) return 'Engajada';
+        if (duration > 60000) return 'Média';
+        return 'Rápida';
+    }
+}
+
+// Inicializar analytics quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    // Aguardar um pouco para não impactar o carregamento da página
+    setTimeout(() => {
+        const analytics = new VisitorAnalytics();
+        
+        // Só configurar rastreamento em produção
+        if (analytics.isProduction) {
+            // Método mais confiável: rastrear por scroll position
+            let lastSection = null;
+            const checkCurrentSection = () => {
+                const sections = document.querySelectorAll('section[id]');
+                const scrollTop = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const centerPoint = scrollTop + (windowHeight / 2);
+                
+                let currentSection = null;
+                
+                sections.forEach(section => {
+                    const rect = section.getBoundingClientRect();
+                    const sectionTop = scrollTop + rect.top;
+                    const sectionBottom = sectionTop + rect.height;
+                    
+                    // Se o centro da tela está nesta seção
+                    if (centerPoint >= sectionTop && centerPoint <= sectionBottom) {
+                        currentSection = '#' + section.id;
+                    }
+                });
+                
+                // Se mudou de seção
+                if (currentSection && currentSection !== lastSection) {
+                    analytics.trackSectionVisit(currentSection);
+                    lastSection = currentSection;
+                }
+            };
+            
+            // Verificar seção inicial
+            setTimeout(checkCurrentSection, 500);
+            
+            // Verificar durante scroll com throttle
+            let scrollTimeout;
+            window.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(checkCurrentSection, 100);
+            }, { passive: true });
+            
+            // Verificar quando clicar em links de navegação
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    setTimeout(checkCurrentSection, 800); // Esperar animação do scroll
+                });
+            });
+        }
+    }, 1000);
+});
+
 // Export for potential module usage
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -631,6 +957,8 @@ if (typeof module !== 'undefined' && module.exports) {
         AnimationObserver,
         ContactForm,
         ThemeManager,
-        DeviceUtils
+        DeviceUtils,
+        VisitorAnalytics,
+        InteractionTracker
     };
 }

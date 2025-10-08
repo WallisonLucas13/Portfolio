@@ -285,14 +285,22 @@ select:focus {
     transition: width var(--transition-normal);
 }
 
-.nav-link:hover,
+.nav-link:hover {
+    color: var(--text-primary);
+}
+
 .nav-link.active {
     color: var(--brand-primary);
 }
 
-.nav-link:hover::after,
 .nav-link.active::after {
     width: 100%;
+}
+
+.nav-link:focus {
+    outline: none;
+    /* Remover estilos de focus que conflitam com o scroll detection */
+    /* Deixar apenas o sistema JavaScript gerenciar as classes active */
 }
 
 .nav-toggle {
