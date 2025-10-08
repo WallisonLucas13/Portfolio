@@ -28,6 +28,9 @@ navLinks.forEach(link => {
         
         // Add active class to clicked link (click effect with bottom bar)
         link.classList.add('active');
+        
+        // Remove focus from link to prevent CSS :focus conflicts
+        link.blur();
     });
 });
 

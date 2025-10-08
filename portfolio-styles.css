@@ -299,11 +299,8 @@ select:focus {
 
 .nav-link:focus {
     outline: none;
-    color: var(--brand-primary);
-}
-
-.nav-link:focus::after {
-    width: 100%;
+    /* Remover estilos de focus que conflitam com o scroll detection */
+    /* Deixar apenas o sistema JavaScript gerenciar as classes active */
 }
 
 .nav-toggle {
