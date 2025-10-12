@@ -212,22 +212,11 @@ class TypingAnimation {
             this.charIndex++;
             setTimeout(() => this.type(), this.speed);
             
-        } else if (this.isDeleting && this.charIndex > 1) {
-            // Deleting (but stop at 1 character to avoid empty state)
+        } else if (this.isDeleting && this.charIndex > 0) {
+            // Deleting
             this.element.textContent = currentText.substring(0, this.charIndex - 1);
             this.charIndex--;
             setTimeout(() => this.type(), this.speed / 2);
-            
-        } else if (this.isDeleting && this.charIndex === 1) {
-            // When only 1 character left, immediately switch to next word
-            this.isDeleting = false;
-            this.textIndex = (this.textIndex + 1) % this.texts.length;
-            this.charIndex = 0;
-            // Start typing the next word immediately
-            const nextText = this.texts[this.textIndex];
-            this.element.textContent = nextText.charAt(0);
-            this.charIndex = 1;
-            setTimeout(() => this.type(), this.speed);
             
         } else {
             // Switch between typing and deleting
@@ -235,10 +224,9 @@ class TypingAnimation {
                 this.isDeleting = true;
                 setTimeout(() => this.type(), 2000); // Wait before deleting
             } else {
-                // This shouldn't happen anymore with the new logic
                 this.isDeleting = false;
                 this.textIndex = (this.textIndex + 1) % this.texts.length;
-                setTimeout(() => this.type(), 500);
+                setTimeout(() => this.type(), 500); // Wait before next text
             }
         }
     }
@@ -554,9 +542,6 @@ function activateEasterEgg() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Portfolio carregado com sucesso!');
     
-    // Initialize consent system first
-    ConsentManager.init();
-    
     // Update copyright year dynamically
     updateCopyrightYear();
     
@@ -592,11 +577,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroTextElement = document.querySelector('.hero-profession');
     if (heroTextElement) {
         const typingTexts = [
-            'Desenvolvedor FullStack',
+            'Engenheiro de Software',
             'Desenvolvedor Java',
             'Desenvolvedor Typescript',
-            'Desenvolvedor Spring Boot',
-            'Desenvolvedor Angular',
+            'Desenvolvedor FullStack'
         ];
         
         const typingAnimation = new TypingAnimation(heroTextElement, typingTexts, 150);
@@ -664,446 +648,19 @@ const ThemeManager = {
     }
 };
 
-// ===== CONSENT MANAGER =====
-const ConsentManager = {
-    init() {
-        this.checkConsent();
-    },
-
-    checkConsent() {
-        const consent = localStorage.getItem('portfolio-analytics-consent');
-        
-        if (consent === null) {
-            // Primeiro acesso - mostrar modal de consentimento
-            this.showConsentModal();
-        } else if (consent === 'accepted') {
-            // Usuário já aceitou - verificar se analytics funciona
-            this.verifyAndInitAnalytics();
-        }
-        // Se consent === 'rejected', não fazer nada
-    },
-
-    showConsentModal() {
-        const modal = this.createConsentModal();
-        document.body.appendChild(modal);
-        
-        // Mostrar modal com animação
-        setTimeout(() => {
-            modal.classList.add('active');
-        }, 100);
-    },
-
-    createConsentModal() {
-        const modal = document.createElement('div');
-        modal.className = 'consent-modal';
-        modal.innerHTML = `
-            <div class="consent-overlay"></div>
-            <div class="consent-content">
-                <div class="consent-header">
-                    <i class="fas fa-shield-alt"></i>
-                    <h3>Termo de Uso e Privacidade</h3>
-                </div>
-                
-                <div class="consent-body">
-                    <p>Para melhorar sua experiência de navegação, este site coleta dados anônimos sobre:</p>
-                    
-                    <ul class="consent-features">
-                        <li><i class="fas fa-check"></i> Tempo de permanência nas seções</li>
-                        <li><i class="fas fa-check"></i> Navegação entre páginas</li>
-                        <li><i class="fas fa-check"></i> Interações com o conteúdo</li>
-                    </ul>
-                    
-                    <div class="consent-privacy">
-                        <strong>Garantimos que:</strong>
-                        <ul>
-                            <li>Nenhum dado pessoal é coletado</li>
-                            <li>Informações são usadas apenas para estatísticas</li>
-                            <li>Você pode revogar o consentimento a qualquer momento</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="consent-actions">
-                    <button class="btn-consent btn-reject" onclick="ConsentManager.rejectConsent()">
-                        <i class="fas fa-times"></i> Recusar
-                    </button>
-                    <button class="btn-consent btn-accept" onclick="ConsentManager.acceptConsent()">
-                        <i class="fas fa-check"></i> Aceitar e Continuar
-                    </button>
-                </div>
-                
-                <div class="consent-footer">
-                    <small>Ao continuar navegando, você concorda com nossos termos de uso.</small>
-                </div>
-            </div>
-        `;
-
-        return modal;
-    },
-
-    acceptConsent() {
-        localStorage.setItem('portfolio-analytics-consent', 'accepted');
-        this.hideConsentModal();
-        
-        // Tentar inicializar analytics com verificação contínua
-        this.verifyAndInitAnalytics(true);
-    },
-
-    rejectConsent() {
-        localStorage.setItem('portfolio-analytics-consent', 'rejected');
-        this.hideConsentModal();
-        
-        // Mostrar mensagem de que analytics foi desabilitado
-        this.showRejectionMessage();
-    },
-
-    hideConsentModal() {
-        const modal = document.querySelector('.consent-modal');
-        if (modal) {
-            modal.classList.remove('active');
-            setTimeout(() => {
-                document.body.removeChild(modal);
-            }, 300);
-        }
-    },
-
-    verifyAndInitAnalytics(enableContinuousCheck = false) {
-        // Verificar se há bloqueadores ativos
-        if (this.detectBlockers()) {
-            this.showBlockerWarning();
-            
-            // Se solicitado, configurar verificação contínua
-            if (enableContinuousCheck) {
-                this.startContinuousBlockerCheck();
-            }
-        } else {
-            // Inicializar analytics normalmente
-            this.initializeAnalytics();
-            this.showAnalyticsActivatedMessage();
-        }
-    },
-
-    startContinuousBlockerCheck() {
-        // Verificar a cada 3 segundos se bloqueadores foram desabilitados
-        const checkInterval = setInterval(() => {
-            if (!this.detectBlockers()) {
-                // Bloqueadores foram desabilitados!
-                clearInterval(checkInterval);
-                this.hideBlockerWarning();
-                this.initializeAnalytics();
-                this.showAnalyticsActivatedMessage();
-            }
-        }, 3000);
-
-        // Parar verificação após 5 minutos (evitar loop infinito)
-        setTimeout(() => {
-            clearInterval(checkInterval);
-        }, 300000);
-
-        // Armazenar referência para poder cancelar se necessário
-        this.blockerCheckInterval = checkInterval;
-    },
-
-    detectBlockers() {
-        // Verificar diferentes tipos de bloqueadores
-        const blockers = {
-            adblock: this.detectAdBlock(),
-            tracking: this.detectTrackingProtection(),
-            cookies: this.detectCookieBlock()
-        };
-
-        return Object.values(blockers).some(blocked => blocked);
-    },
-
-    detectAdBlock() {
-        // Criar elemento que adblocks normalmente bloqueiam
-        const testAd = document.createElement('div');
-        testAd.innerHTML = '&nbsp;';
-        testAd.className = 'adsbox';
-        testAd.style.position = 'absolute';
-        testAd.style.left = '-10000px';
-        
-        document.body.appendChild(testAd);
-        
-        const isBlocked = testAd.offsetHeight === 0;
-        document.body.removeChild(testAd);
-        
-        return isBlocked;
-    },
-
-    detectTrackingProtection() {
-        // Verificar se tracking está sendo bloqueado
-        try {
-            // Tentar acessar funcionalidades de tracking
-            return !navigator.sendBeacon || 
-                   window.doNotTrack === '1' || 
-                   navigator.doNotTrack === '1';
-        } catch (e) {
-            return true;
-        }
-    },
-
-    detectCookieBlock() {
-        // Verificar se cookies estão bloqueados
-        try {
-            document.cookie = 'test=1; SameSite=Strict';
-            const hasSupport = document.cookie.indexOf('test=1') !== -1;
-            document.cookie = 'test=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-            return !hasSupport;
-        } catch (e) {
-            return true;
-        }
-    },
-
-    showBlockerWarning() {
-        const warning = this.createBlockerWarning();
-        document.body.appendChild(warning);
-        
-        setTimeout(() => {
-            warning.classList.add('active');
-        }, 100);
-    },
-
-    createBlockerWarning() {
-        const warning = document.createElement('div');
-        warning.className = 'blocker-warning';
-        warning.innerHTML = `
-            <div class="warning-content">
-                <div class="warning-header">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h4>Bloqueador Detectado</h4>
-                </div>
-                
-                <p>Detectamos que você possui bloqueadores ativos. Para uma experiência completa com analytics:</p>
-                
-                <div class="warning-instructions">
-                    <strong>Instruções rápidas:</strong>
-                    <ol>
-                        <li><strong>AdBlock/uBlock:</strong> Clique no ícone da extensão → "Desabilitar neste site"</li>
-                        <li><strong>Brave:</strong> Clique no escudo → "Desabilitar Brave Shields"</li>
-                        <li><strong>Edge/Chrome:</strong> Configurações → Privacidade → Exceções para este site</li>
-                    </ol>
-                </div>
-                
-                <div class="warning-status">
-                    <p><i class="fas fa-sync fa-spin"></i> Verificando automaticamente se bloqueadores foram desabilitados...</p>
-                </div>
-                
-                <div class="warning-actions">
-                    <button class="btn-warning btn-check" onclick="ConsentManager.manualBlockerCheck()">
-                        <i class="fas fa-search"></i> Verificar Agora
-                    </button>
-                    <button class="btn-warning btn-continue" onclick="ConsentManager.continueWithBlocker()">
-                        <i class="fas fa-arrow-right"></i> Continuar Mesmo Assim
-                    </button>
-                </div>
-            </div>
-        `;
-
-        return warning;
-    },
-
-    continueWithBlocker() {
-        this.hideBlockerWarning();
-        
-        // Inicializar analytics mesmo com bloqueador (modo limitado)
-        this.initializeAnalytics(true);
-    },
-
-    hideBlockerWarning() {
-        const warning = document.querySelector('.blocker-warning');
-        if (warning) {
-            warning.classList.remove('active');
-            setTimeout(() => {
-                if (warning.parentNode) {
-                    document.body.removeChild(warning);
-                }
-            }, 300);
-        }
-
-        // Cancelar verificação contínua se existir
-        if (this.blockerCheckInterval) {
-            clearInterval(this.blockerCheckInterval);
-            this.blockerCheckInterval = null;
-        }
-    },
-
-    initializeAnalytics(limitedMode = false) {
-        // Aguardar um pouco para não impactar o carregamento da página
-        setTimeout(() => {
-            const analytics = new VisitorAnalytics(limitedMode);
-            
-            // Só configurar rastreamento completo se não estiver em modo limitado
-            if (!limitedMode && analytics.isProduction) {
-                this.setupAdvancedTracking(analytics);
-            }
-        }, 1000);
-    },
-
-    setupAdvancedTracking(analytics) {
-        // Método mais confiável: rastrear por scroll position
-        let lastSection = null;
-        const checkCurrentSection = () => {
-            const sections = document.querySelectorAll('section[id]');
-            const scrollTop = window.scrollY;
-            const windowHeight = window.innerHeight;
-            const centerPoint = scrollTop + (windowHeight / 2);
-            
-            let currentSection = null;
-            
-            sections.forEach(section => {
-                const rect = section.getBoundingClientRect();
-                const sectionTop = scrollTop + rect.top;
-                const sectionBottom = sectionTop + rect.height;
-                
-                if (centerPoint >= sectionTop && centerPoint <= sectionBottom) {
-                    currentSection = '#' + section.id;
-                }
-            });
-            
-            if (currentSection && currentSection !== lastSection) {
-                analytics.trackSectionVisit(currentSection);
-                lastSection = currentSection;
-            }
-        };
-        
-        setTimeout(checkCurrentSection, 500);
-        
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(checkCurrentSection, 100);
-        }, { passive: true });
-        
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                setTimeout(checkCurrentSection, 800);
-            });
-        });
-    },
-
-    showRejectionMessage() {
-        this.showNotificationMessage(
-            'Análise de uso desabilitada. Você pode alterar isso nas configurações.',
-            'info',
-            'fas fa-info-circle'
-        );
-    },
-
-    showAnalyticsActivatedMessage() {
-        this.showNotificationMessage(
-            'Análise de uso ativada com sucesso! Obrigado por permitir melhorar sua experiência.',
-            'success',
-            'fas fa-check-circle'
-        );
-    },
-
-    showNotificationMessage(message, type, icon) {
-        const notification = document.createElement('div');
-        notification.className = `consent-notification consent-notification-${type}`;
-        notification.innerHTML = `
-            <i class="${icon}"></i>
-            <span>${message}</span>
-        `;
-
-        const colors = {
-            success: 'var(--success, #10b981)',
-            info: 'var(--info, #3b82f6)',
-            warning: 'var(--warning, #f59e0b)',
-            error: 'var(--error, #ef4444)'
-        };
-
-        notification.style.cssText = `
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background: ${colors[type] || colors.info};
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: var(--radius-lg, 8px);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            z-index: 10000;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            box-shadow: var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.3));
-            max-width: 350px;
-            font-size: 0.9rem;
-        `;
-
-        document.body.appendChild(notification);
-
-        setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-        }, 100);
-
-        const duration = type === 'success' ? 5000 : 4000;
-        setTimeout(() => {
-            notification.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    document.body.removeChild(notification);
-                }
-            }, 300);
-        }, duration);
-    },
-
-    manualBlockerCheck() {
-        const checkBtn = document.querySelector('.btn-check');
-        if (checkBtn) {
-            const originalText = checkBtn.innerHTML;
-            checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-            checkBtn.disabled = true;
-            
-            setTimeout(() => {
-                if (!this.detectBlockers()) {
-                    // Bloqueadores desabilitados!
-                    this.hideBlockerWarning();
-                    this.initializeAnalytics();
-                    this.showAnalyticsActivatedMessage();
-                } else {
-                    // Ainda bloqueado
-                    checkBtn.innerHTML = '<i class="fas fa-times"></i> Ainda Bloqueado';
-                    setTimeout(() => {
-                        checkBtn.innerHTML = originalText;
-                        checkBtn.disabled = false;
-                    }, 2000);
-                    
-                    this.showNotificationMessage(
-                        'Bloqueadores ainda estão ativos. Tente as instruções acima.',
-                        'warning',
-                        'fas fa-exclamation-triangle'
-                    );
-                }
-            }, 1000); // Delay para dar feedback visual
-        }
-    },
-
-    // Método para revogar consentimento (pode ser chamado de um botão de configurações)
-    revokeConsent() {
-        localStorage.removeItem('portfolio-analytics-consent');
-        this.showConsentModal();
-    }
-};
-
 // ===== VISITOR ANALYTICS =====
 class VisitorAnalytics {
-    constructor(limitedMode = false) {
+    constructor() {
         this.visitStartTime = Date.now();
         this.visitorId = this.generateVisitorId();
         this.sectionEntries = []; // Lista de entradas: {section, timestamp}
         this.hasReportedVisit = false;
         this.minTimeThreshold = 0;
         this.isProduction = !this.isLocalDevelopment();
-        this.limitedMode = limitedMode;
+        this.init();
         
-        // Só inicializar se o consentimento foi dado
-        const consent = localStorage.getItem('portfolio-analytics-consent');
-        if (consent === 'accepted') {
-            this.init();
-            this.recordSectionEntry('#home');
-        }
+        // Registrar entrada inicial no home
+        this.recordSectionEntry('#home');
     }
 
     isLocalDevelopment() {
@@ -1214,11 +771,8 @@ class VisitorAnalytics {
     }
 
     async reportCompleteVisit() {
-        // Não enviar em desenvolvimento local ou sem consentimento
+        // Não enviar em desenvolvimento local
         if (!this.isProduction) return;
-        
-        const consent = localStorage.getItem('portfolio-analytics-consent');
-        if (consent !== 'accepted') return;
         
         const totalTime = Date.now() - this.visitStartTime;
         if (totalTime < this.minTimeThreshold || this.hasReportedVisit) return;
@@ -1340,7 +894,61 @@ class VisitorAnalytics {
     }
 }
 
-// Analytics será inicializado apenas após consentimento via ConsentManager
+// Inicializar analytics quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    // Aguardar um pouco para não impactar o carregamento da página
+    setTimeout(() => {
+        const analytics = new VisitorAnalytics();
+        
+        // Só configurar rastreamento em produção
+        if (analytics.isProduction) {
+            // Método mais confiável: rastrear por scroll position
+            let lastSection = null;
+            const checkCurrentSection = () => {
+                const sections = document.querySelectorAll('section[id]');
+                const scrollTop = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const centerPoint = scrollTop + (windowHeight / 2);
+                
+                let currentSection = null;
+                
+                sections.forEach(section => {
+                    const rect = section.getBoundingClientRect();
+                    const sectionTop = scrollTop + rect.top;
+                    const sectionBottom = sectionTop + rect.height;
+                    
+                    // Se o centro da tela está nesta seção
+                    if (centerPoint >= sectionTop && centerPoint <= sectionBottom) {
+                        currentSection = '#' + section.id;
+                    }
+                });
+                
+                // Se mudou de seção
+                if (currentSection && currentSection !== lastSection) {
+                    analytics.trackSectionVisit(currentSection);
+                    lastSection = currentSection;
+                }
+            };
+            
+            // Verificar seção inicial
+            setTimeout(checkCurrentSection, 500);
+            
+            // Verificar durante scroll com throttle
+            let scrollTimeout;
+            window.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(checkCurrentSection, 100);
+            }, { passive: true });
+            
+            // Verificar quando clicar em links de navegação
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    setTimeout(checkCurrentSection, 800); // Esperar animação do scroll
+                });
+            });
+        }
+    }, 1000);
+});
 
 // Export for potential module usage
 if (typeof module !== 'undefined' && module.exports) {
