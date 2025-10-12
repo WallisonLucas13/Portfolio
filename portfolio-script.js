@@ -212,11 +212,22 @@ class TypingAnimation {
             this.charIndex++;
             setTimeout(() => this.type(), this.speed);
             
-        } else if (this.isDeleting && this.charIndex > 0) {
-            // Deleting
+        } else if (this.isDeleting && this.charIndex > 1) {
+            // Deleting (but stop at 1 character to avoid empty state)
             this.element.textContent = currentText.substring(0, this.charIndex - 1);
             this.charIndex--;
             setTimeout(() => this.type(), this.speed / 2);
+            
+        } else if (this.isDeleting && this.charIndex === 1) {
+            // When only 1 character left, immediately switch to next word
+            this.isDeleting = false;
+            this.textIndex = (this.textIndex + 1) % this.texts.length;
+            this.charIndex = 0;
+            // Start typing the next word immediately
+            const nextText = this.texts[this.textIndex];
+            this.element.textContent = nextText.charAt(0);
+            this.charIndex = 1;
+            setTimeout(() => this.type(), this.speed);
             
         } else {
             // Switch between typing and deleting
@@ -224,9 +235,10 @@ class TypingAnimation {
                 this.isDeleting = true;
                 setTimeout(() => this.type(), 2000); // Wait before deleting
             } else {
+                // This shouldn't happen anymore with the new logic
                 this.isDeleting = false;
                 this.textIndex = (this.textIndex + 1) % this.texts.length;
-                setTimeout(() => this.type(), 500); // Wait before next text
+                setTimeout(() => this.type(), 500);
             }
         }
     }
@@ -577,10 +589,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroTextElement = document.querySelector('.hero-profession');
     if (heroTextElement) {
         const typingTexts = [
-            'Engenheiro de Software',
+            'Desenvolvedor FullStack',
             'Desenvolvedor Java',
             'Desenvolvedor Typescript',
-            'Desenvolvedor FullStack'
+            'Desenvolvedor Spring Boot',
+            'Desenvolvedor Angular'
         ];
         
         const typingAnimation = new TypingAnimation(heroTextElement, typingTexts, 150);
